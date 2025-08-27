@@ -1,0 +1,42 @@
+[
+  {
+    "id": 1,
+    "nombre": "Juan Pérez",
+    "email": "juan.perez@utch.edu.co",
+    "password": "123456",
+    "carrera": "Ingeniería de Sistemas",
+    "semestre": 8,
+    "telefono": "+57 300 123 4567",
+    "fechaRegistro": "2024-01-15"
+  },
+  {
+    "id": 2,
+    "nombre": "María González",
+    "email": "maria.gonzalez@utch.edu.co",
+    "password": "contraseña123",
+    "carrera": "Administración de Empresas",
+    "semestre": 6,
+    "telefono": "+57 301 987 6543",
+    "fechaRegistro": "2024-02-20"
+  },
+  {
+    "id": 3,
+    "nombre": "Carlos Rodríguez",
+    "email": "carlos.rodriguez@utch.edu.co",
+    "password": "mipassword",
+    "carrera": "Ingeniería Civil",
+    "semestre": 7,
+    "telefono": "+57 302 456 7890",
+    "fechaRegistro": "2024-03-10"
+  },
+  {
+    "id": 4,
+    "nombre": "Ana López",
+    "email": "ana.lopez@utch.edu.co",
+    "password": "password2024",
+    "carrera": "Psicología",
+    "semestre": 5,
+    "telefono": "+57 303 654 3210",
+    "fechaRegistro": "2024-01-25"
+  }
+]
