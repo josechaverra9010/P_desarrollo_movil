@@ -69,7 +69,7 @@ export default function TripDetailsScreen({ trip, currentUserId, userType }: Tri
     {
       id: '1',
       name: 'María González',
-      program: 'Ingeniería Sistemas',
+      program: 'Ingeniería Telecomunicaciones e Informatica',
       rating: 4.7,
       joinedAt: '2025-01-10T08:30:00Z',
       status: 'confirmed'

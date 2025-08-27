@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, ScrollView, StyleSheet, StatusBar } from 'react-native';
+import { View, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import {
   Surface,
   TextInput,
@@ -13,7 +13,25 @@ import {
   TouchableRipple,
   Icon,
   Divider,
+  Provider as PaperProvider,
+  DefaultTheme,
 } from 'react-native-paper';
+import { LinearGradient } from 'expo-linear-gradient';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { useRouter } from 'expo-router';
+
+// Tema personalizado con colores de la UTCH (mismo que LoginScreen)
+const customTheme = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    primary: '#1B5E96',
+    accent: '#F39C12',
+    background: '#F8F9FA',
+    surface: '#FFFFFF',
+    text: '#2C3E50',
+  },
+};
 
 interface RegisterScreenProps {
   onRegisterSuccess: () => void;
@@ -41,6 +59,7 @@ export default function RegisterScreen({
     acceptTerms: false
   });
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
   const programas = [
     'Ingeniería de Telecomunicaciones',
@@ -89,39 +108,52 @@ export default function RegisterScreen({
     }, 2000);
   };
 
-  return (
-    <View style={styles.container}>
-      <StatusBar backgroundColor="#0D4A2B" barStyle="light-content" />
-      
-      {/* Header */}
-      <Surface style={styles.headerSurface}>
-        <View style={styles.headerContent}>
-          <Avatar.Icon size={80} icon="school" style={styles.avatar} />
-          <Text variant="displaySmall" style={styles.title}>
-            UTCH Chompi
-          </Text>
-          <Text variant="titleMedium" style={styles.subtitle}>
-            Únete a la comunidad universitaria
-          </Text>
-        </View>
-      </Surface>
+  const handleGoToLogin = () => {
+    router.push('/LoginScreen');
+  };
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+  return (
+    <PaperProvider theme={customTheme}>
+      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+        {/* Header con gradiente (mismo estilo que LoginScreen) */}
+        <LinearGradient
+          colors={['#1B5E96', '#2980B9']}
+          style={styles.headerGradient}
+        >
+          <View style={styles.headerContent}>
+            <MaterialIcons name="school" size={48} color="#FFFFFF" />
+            <Text variant="headlineMedium" style={styles.title}>
+              UTCH Chompi
+            </Text>
+            <Text variant="bodyLarge" style={styles.subtitle}>
+              Únete a la comunidad universitaria
+            </Text>
+            <View style={styles.headerIconsRow}>
+              <View style={styles.headerIcon}>
+                <MaterialIcons name="person-add" size={24} color="#F39C12" />
+              </View>
+              <View style={styles.headerIcon}>
+                <MaterialIcons name="security" size={24} color="#F39C12" />
+              </View>
+              <View style={styles.headerIcon}>
+                <MaterialIcons name="verified-user" size={24} color="#F39C12" />
+              </View>
+            </View>
+          </View>
+        </LinearGradient>
+
+        {/* Tarjeta de Registro (mismo estilo que LoginScreen) */}
         <Card style={styles.registerCard}>
           <Card.Content style={styles.cardContent}>
-            <View style={styles.formHeader}>
-              <Text variant="headlineMedium" style={styles.formTitle}>Crear Cuenta</Text>
-              <Chip 
-                icon="shield-check" 
-                mode="flat"
-                style={styles.verifiedChip}
-                textStyle={styles.verifiedChipText}
-              >
-                Solo estudiantes UTCH
-              </Chip>
+            <View style={styles.registerHeader}>
+              <MaterialIcons name="person-add" size={32} color="#1B5E96" />
+              <Text variant="titleLarge" style={styles.cardTitle}>
+                Crear Cuenta
+              </Text>
+              <Text variant="bodyMedium" style={styles.cardSubtitle}>
+                Regístrate con tu cuenta institucional UTCH
+              </Text>
             </View>
-
-            <Divider style={styles.divider} />
 
             {/* Nombres y Apellidos */}
             <View style={styles.rowContainer}>
@@ -131,7 +163,9 @@ export default function RegisterScreen({
                 onChangeText={(text) => setRegisterData({...registerData, nombres: text})}
                 mode="outlined"
                 style={[styles.input, styles.halfInput]}
-                theme={{ colors: { primary: '#2E7D32' } }}
+                outlineColor="#BDC3C7"
+                activeOutlineColor="#1B5E96"
+                right={<TextInput.Icon icon="account" />}
               />
               <TextInput
                 label="Apellidos"
@@ -139,7 +173,9 @@ export default function RegisterScreen({
                 onChangeText={(text) => setRegisterData({...registerData, apellidos: text})}
                 mode="outlined"
                 style={[styles.input, styles.halfInput]}
-                theme={{ colors: { primary: '#2E7D32' } }}
+                outlineColor="#BDC3C7"
+                activeOutlineColor="#1B5E96"
+                right={<TextInput.Icon icon="account-outline" />}
               />
             </View>
 
@@ -151,8 +187,9 @@ export default function RegisterScreen({
               mode="outlined"
               style={styles.input}
               keyboardType="numeric"
-              left={<TextInput.Icon icon="card-account-details" />}
-              theme={{ colors: { primary: '#2E7D32' } }}
+              outlineColor="#BDC3C7"
+              activeOutlineColor="#1B5E96"
+              right={<TextInput.Icon icon="card-account-details" />}
             />
 
             {/* Email */}
@@ -164,9 +201,9 @@ export default function RegisterScreen({
               style={styles.input}
               keyboardType="email-address"
               autoCapitalize="none"
-              left={<TextInput.Icon icon="email" />}
-              helper="@utch.edu.co"
-              theme={{ colors: { primary: '#2E7D32' } }}
+              outlineColor="#BDC3C7"
+              activeOutlineColor="#1B5E96"
+              right={<TextInput.Icon icon="email" />}
             />
 
             {/* Teléfono */}
@@ -177,8 +214,9 @@ export default function RegisterScreen({
               mode="outlined"
               style={styles.input}
               keyboardType="phone-pad"
-              left={<TextInput.Icon icon="phone" />}
-              theme={{ colors: { primary: '#2E7D32' } }}
+              outlineColor="#BDC3C7"
+              activeOutlineColor="#1B5E96"
+              right={<TextInput.Icon icon="phone" />}
             />
 
             {/* Programa Académico */}
@@ -211,8 +249,9 @@ export default function RegisterScreen({
               mode="outlined"
               style={styles.input}
               keyboardType="numeric"
-              left={<TextInput.Icon icon="book-open-variant" />}
-              theme={{ colors: { primary: '#2E7D32' } }}
+              outlineColor="#BDC3C7"
+              activeOutlineColor="#1B5E96"
+              right={<TextInput.Icon icon="book-open-variant" />}
             />
 
             {/* Contraseñas */}
@@ -223,8 +262,9 @@ export default function RegisterScreen({
               mode="outlined"
               secureTextEntry
               style={styles.input}
-              left={<TextInput.Icon icon="lock" />}
-              theme={{ colors: { primary: '#2E7D32' } }}
+              outlineColor="#BDC3C7"
+              activeOutlineColor="#1B5E96"
+              right={<TextInput.Icon icon="lock" />}
             />
 
             <TextInput
@@ -234,8 +274,9 @@ export default function RegisterScreen({
               mode="outlined"
               secureTextEntry
               style={styles.input}
-              left={<TextInput.Icon icon="lock-check" />}
-              theme={{ colors: { primary: '#2E7D32' } }}
+              outlineColor="#BDC3C7"
+              activeOutlineColor="#1B5E96"
+              right={<TextInput.Icon icon="lock-check" />}
             />
 
             {/* Términos y Condiciones */}
@@ -243,133 +284,170 @@ export default function RegisterScreen({
               <Switch
                 value={registerData.acceptTerms}
                 onValueChange={(value) => setRegisterData({...registerData, acceptTerms: value})}
-                color="#2E7D32"
+                color="#1B5E96"
               />
-              <TouchableRipple onPress={onShowTerms} style={styles.termsTextContainer}>
+              <TouchableOpacity onPress={onShowTerms} style={styles.termsTextContainer}>
                 <Text variant="bodyMedium" style={styles.termsText}>
                   Acepto los términos y condiciones de uso
                 </Text>
-              </TouchableRipple>
+              </TouchableOpacity>
             </View>
 
             {/* Botón de Registro */}
-            <Button
-              mode="contained"
-              onPress={handleRegister}
+            <TouchableOpacity
               style={styles.registerButton}
+              onPress={handleRegister}
               disabled={loading}
-              loading={loading}
-              contentStyle={styles.buttonContent}
             >
-              {loading ? 'Creando cuenta...' : 'Crear Cuenta'}
-            </Button>
+              <MaterialIcons name="person-add" size={28} color="#FFFFFF" />
+              <Text style={styles.registerButtonText}>
+                {loading ? 'Creando cuenta...' : 'Crear Cuenta'}
+              </Text>
+            </TouchableOpacity>
+
+            <Divider style={styles.divider} />
 
             {/* Link para Login */}
-            <View style={styles.loginPrompt}>
-              <Text variant="bodyMedium" style={styles.promptText}>¿Ya tienes cuenta? </Text>
-              <TouchableRipple onPress={onGoToLogin}>
-                <Text variant="bodyMedium" style={styles.linkText}>Inicia sesión</Text>
-              </TouchableRipple>
+            <TouchableOpacity
+              style={styles.loginLink}
+              onPress={handleGoToLogin}
+            >
+              <Text style={styles.loginText}>
+                ¿Ya tienes cuenta? 
+              </Text>
+              <Text style={styles.loginLinkText}>
+                Inicia sesión
+              </Text>
+              <MaterialIcons name="arrow-forward" size={16} color="#1B5E96" />
+            </TouchableOpacity>
+
+            {/* Información de seguridad */}
+            <View style={styles.securityInfo}>
+              <Text variant="labelMedium" style={styles.securityTitle}>
+                Solo estudiantes UTCH:
+              </Text>
+              <View style={styles.securityItem}>
+                <MaterialIcons name="verified-user" size={16} color="#7F8C8D" />
+                <Text variant="bodySmall" style={styles.securityText}>
+                  Verificación con correo institucional
+                </Text>
+              </View>
+              <View style={styles.securityItem}>
+                <MaterialIcons name="security" size={16} color="#7F8C8D" />
+                <Text variant="bodySmall" style={styles.securityText}>
+                  Tus datos están protegidos
+                </Text>
+              </View>
             </View>
           </Card.Content>
         </Card>
-      </ScrollView>
 
-      {loading && (
-        <Surface style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color="#2E7D32" />
-          <Text style={styles.loadingText}>Creando tu cuenta...</Text>
-        </Surface>
-      )}
-    </View>
+        {/* Footer informativo */}
+        <View style={styles.footer}>
+          <MaterialIcons name="security" size={20} color="#7F8C8D" />
+          <Text style={styles.footerText}>
+            Registro seguro y verificado
+          </Text>
+        </View>
+
+        {loading && (
+          <Surface style={styles.loadingOverlay}>
+            <ActivityIndicator size="large" color="#1B5E96" />
+            <Text style={styles.loadingText}>Creando tu cuenta...</Text>
+          </Surface>
+        )}
+      </ScrollView>
+    </PaperProvider>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F7FA',
+    backgroundColor: '#F8F9FA',
   },
-  headerSurface: {
-    backgroundColor: '#0D4A2B',
-    paddingVertical: 40,
+  headerGradient: {
+    paddingTop: 60,
+    paddingBottom: 40,
     paddingHorizontal: 20,
-    borderBottomLeftRadius: 32,
-    borderBottomRightRadius: 32,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
     elevation: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
   },
   headerContent: {
     alignItems: 'center',
-    paddingTop: 20,
-  },
-  avatar: {
-    backgroundColor: '#2E7D32',
-    marginBottom: 16,
   },
   title: {
-    color: 'white',
+    color: '#FFFFFF',
     fontWeight: '700',
     textAlign: 'center',
-    letterSpacing: 1,
+    marginTop: 12,
   },
   subtitle: {
-    color: 'rgba(255,255,255,0.8)',
+    color: '#E3F2FD',
     textAlign: 'center',
     marginTop: 8,
+    opacity: 0.9,
   },
-  scrollView: {
-    flex: 1,
+  headerIconsRow: {
+    flexDirection: 'row',
+    marginTop: 20,
+    gap: 24,
+  },
+  headerIcon: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    padding: 12,
+    borderRadius: 20,
   },
   registerCard: {
     margin: 20,
     marginTop: -20,
-    elevation: 12,
-    borderRadius: 24,
-    backgroundColor: 'white',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    borderRadius: 16,
   },
   cardContent: {
     padding: 24,
   },
-  formHeader: {
+  registerHeader: {
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 24,
   },
-  formTitle: {
-    color: '#0D4A2B',
+  cardTitle: {
+    color: '#2C3E50',
     fontWeight: '700',
-    marginBottom: 16,
+    textAlign: 'center',
+    marginTop: 12,
   },
-  verifiedChip: {
-    backgroundColor: '#E8F5E8',
-  },
-  verifiedChipText: {
-    color: '#2E7D32',
-    fontWeight: '600',
-  },
-  divider: {
-    marginVertical: 24,
-    backgroundColor: '#E0E0E0',
+  cardSubtitle: {
+    color: '#7F8C8D',
+    textAlign: 'center',
+    marginTop: 4,
   },
   input: {
     marginBottom: 16,
-    backgroundColor: 'white',
+    backgroundColor: '#FFFFFF',
   },
   rowContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    gap: 12,
   },
   halfInput: {
-    width: '47%',
+    flex: 1,
   },
   sectionContainer: {
     marginBottom: 16,
   },
   sectionTitle: {
-    color: '#0D4A2B',
+    color: '#2C3E50',
     fontWeight: '600',
     marginBottom: 12,
   },
@@ -379,17 +457,18 @@ const styles = StyleSheet.create({
   programChip: {
     marginRight: 8,
     marginBottom: 8,
-    backgroundColor: '#F5F5F5',
-    borderColor: '#E0E0E0',
+    backgroundColor: '#F8F9FA',
+    borderColor: '#BDC3C7',
   },
   selectedChip: {
-    backgroundColor: '#2E7D32',
+    backgroundColor: '#1B5E96',
+    borderColor: '#1B5E96',
   },
   chipText: {
-    color: '#666',
+    color: '#7F8C8D',
   },
   selectedChipText: {
-    color: 'white',
+    color: '#FFFFFF',
     fontWeight: '600',
   },
   termsContainer: {
@@ -403,29 +482,83 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   termsText: {
-    color: '#666',
+    color: '#7F8C8D',
     lineHeight: 20,
   },
   registerButton: {
-    backgroundColor: '#2E7D32',
-    marginBottom: 20,
-    borderRadius: 16,
-    elevation: 4,
-  },
-  buttonContent: {
-    paddingVertical: 8,
-  },
-  loginPrompt: {
+    backgroundColor: '#1B5E96',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'center',
-    alignItems: 'center',
+    gap: 8,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    marginBottom: 20,
   },
-  promptText: {
-    color: '#666',
-  },
-  linkText: {
-    color: '#2E7D32',
+  registerButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
     fontWeight: '600',
+  },
+  divider: {
+    marginVertical: 20,
+    backgroundColor: '#ECF0F1',
+  },
+  loginLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    gap: 4,
+  },
+  loginText: {
+    color: '#7F8C8D',
+    fontSize: 14,
+  },
+  loginLinkText: {
+    color: '#1B5E96',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  securityInfo: {
+    backgroundColor: '#F8F9FA',
+    padding: 16,
+    borderRadius: 8,
+    marginTop: 20,
+    borderLeftWidth: 3,
+    borderLeftColor: '#1B5E96',
+  },
+  securityTitle: {
+    color: '#2C3E50',
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  securityItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  securityText: {
+    color: '#7F8C8D',
+  },
+  footer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 20,
+    paddingHorizontal: 20,
+  },
+  footerText: {
+    color: '#7F8C8D',
+    fontSize: 12,
   },
   loadingOverlay: {
     position: 'absolute',
@@ -441,7 +574,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     textAlign: 'center',
-    color: '#2E7D32',
+    color: '#1B5E96',
     fontSize: 16,
     fontWeight: '500',
   },

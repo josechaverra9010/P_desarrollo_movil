@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, ScrollView, StyleSheet, FlatList, StatusBar } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, ScrollView, StyleSheet, FlatList, StatusBar, TouchableOpacity, Alert } from 'react-native';
 import {
   Surface,
   Searchbar,
@@ -14,8 +14,24 @@ import {
   List,
   Divider,
   TouchableRipple,
-  Icon,
+  Provider as PaperProvider,
+  DefaultTheme,
 } from 'react-native-paper';
+import { LinearGradient } from 'expo-linear-gradient';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+
+// Tema personalizado consistente
+const customTheme = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    primary: '#1B5E96',
+    accent: '#F39C12',
+    background: '#F8F9FA',
+    surface: '#FFFFFF',
+    text: '#2C3E50',
+  },
+};
 
 interface Trip {
   id: string;
@@ -35,18 +51,22 @@ interface Trip {
 interface SearchTripsScreenProps {
   onBack: () => void;
   showSnackbar: (message: string) => void;
-  onNavigateToChompi: () => void; // Añade esta nueva prop para la navegación
+  onNavigateToChompi: () => void;
+  onNavigateToChat: () => void; // Añadida la nueva prop de navegación
 }
 
 export default function SearchTripsScreen({ 
   onBack, 
   showSnackbar,
-  onNavigateToChompi // Incluye la nueva prop en la desestructuración
+  onNavigateToChompi,
+  onNavigateToChat // Recibimos la nueva prop
 }: SearchTripsScreenProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
+  const [isSearching, setIsSearching] = useState(false);
+  const [alertsEnabled, setAlertsEnabled] = useState(false);
 
   const mockTrips: Trip[] = [
     {
@@ -54,9 +74,9 @@ export default function SearchTripsScreen({
       driverName: 'Ana García',
       route: 'Kennedy → Universidad UTCH',
       time: '7:00 AM',
-      price: '2500',
+      price: '',
       availableSeats: 2,
-      program: 'Ingeniería de Sistemas',
+      program: 'Ingeniería de Telecomunicaciones e informatica',
       rating: 4.8,
       type: 'offer',
       distance: '5.2 km',
@@ -68,7 +88,7 @@ export default function SearchTripsScreen({
       driverName: 'Carlos Rodríguez',
       route: 'Centro → Universidad UTCH',
       time: '7:30 AM',
-      price: '2000',
+      price: '',
       availableSeats: 1,
       program: 'Administración',
       rating: 4.5,
@@ -82,7 +102,7 @@ export default function SearchTripsScreen({
       driverName: 'María López',
       route: 'Necesito: Universidad → Kennedy',
       time: '5:00 PM',
-      price: '2500',
+      price: '',
       availableSeats: 1,
       program: 'Derecho',
       rating: 4.9,
@@ -94,13 +114,13 @@ export default function SearchTripsScreen({
   ];
 
   const filterOptions = [
-    { id: 'morning', label: 'Mañana (6-12)', icon: 'weather-sunrise', color: '#FF9800' },
-    { id: 'afternoon', label: 'Tarde (12-18)', icon: 'weather-sunny', color: '#FFC107' },
-    { id: 'evening', label: 'Noche (18-22)', icon: 'weather-night', color: '#9C27B0' },
+    { id: 'morning', label: 'Mañana (6-12)', icon: 'wb-sunny', color: '#FF9800' },
+    { id: 'afternoon', label: 'Tarde (12-18)', icon: 'wb-sunny', color: '#FFC107' },
+    { id: 'evening', label: 'Noche (18-22)', icon: 'nights-stay', color: '#9C27B0' },
     { id: 'universidad', label: 'A Universidad', icon: 'school', color: '#2E7D32' },
     { id: 'casa', label: 'A Casa', icon: 'home', color: '#1976D2' },
-    { id: 'economico', label: 'Económico', icon: 'currency-usd', color: '#388E3C' },
-    { id: 'verificado', label: 'Verificado', icon: 'shield-check', color: '#0D4A2B' }
+    { id: 'economico', label: 'Económico', icon: 'attach-money', color: '#388E3C' },
+    { id: 'verificado', label: 'Verificado', icon: 'verified', color: '#0D4A2B' }
   ];
 
   const toggleFilter = (filterId: string) => {
@@ -109,10 +129,117 @@ export default function SearchTripsScreen({
         ? prev.filter(f => f !== filterId)
         : [...prev, filterId]
     );
+    showSnackbar(`Filtro ${filterId} ${selectedFilters.includes(filterId) ? 'removido' : 'aplicado'}`);
   };
 
   const clearFilters = () => {
     setSelectedFilters([]);
+    showSnackbar('Filtros limpiados');
+  };
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    if (query.length > 2) {
+      setIsSearching(true);
+      setTimeout(() => {
+        setIsSearching(false);
+        showSnackbar(`Búsqueda realizada: "${query}"`);
+      }, 1000);
+    }
+  };
+
+  const handleContactDriver = (driverName: string) => {
+    Alert.alert(
+      "Contactar Conductor",
+      `¿Deseas iniciar chat con ${driverName}?`,
+      [
+        {
+          text: "Cancelar",
+          style: "cancel"
+        },
+        {
+          text: "Iniciar Chat",
+          onPress: () => {
+            onNavigateToChat(); // Navega a la pantalla de chat
+          }
+        },
+        {
+          text: "Llamar",
+          onPress: () => {
+            showSnackbar(`Llamando a ${driverName}...`);
+          }
+        }
+      ]
+    );
+  };
+
+  const handleTripAction = (item: Trip) => {
+    if (item.type === 'offer') {
+      Alert.alert(
+        "Solicitar Chompi",
+        `¿Deseas solicitar el Chompi con ${item.driverName}?\n\nRuta: ${item.route}\nHora: ${item.time}\n`,
+        [
+          {
+            text: "Cancelar",
+            style: "cancel"
+          },
+          {
+            text: "Solicitar",
+            onPress: () => {
+              onNavigateToChompi(); // Navega a la pantalla de Chompi
+            }
+          }
+        ]
+      );
+    } else {
+      Alert.alert(
+        "Ofrecer Chompi",
+        `¿Deseas ofrecer transporte a ${item.driverName}?\n\nRuta: ${item.route}\nHora: ${item.time}`,
+        [
+          {
+            text: "Cancelar",
+            style: "cancel"
+          },
+          {
+            text: "Ofrecer",
+            onPress: () => {
+              onNavigateToChompi(); // Navega a la pantalla de Chompi
+            }
+          }
+        ]
+      );
+    }
+  };
+
+  const toggleAlerts = () => {
+    setAlertsEnabled(!alertsEnabled);
+    showSnackbar(alertsEnabled ? 'Alertas desactivadas' : 'Alertas de coincidencias activadas');
+  };
+
+  const handleMapView = () => {
+    if (viewMode === 'map') {
+      Alert.alert(
+        "Vista de Mapa",
+        "Funciones disponibles en el mapa:",
+        [
+          {
+            text: "Ver ruta",
+            onPress: () => showSnackbar('Mostrando ruta en mapa...')
+          },
+          {
+            text: "Puntos de encuentro",
+            onPress: () => showSnackbar('Mostrando puntos de encuentro...')
+          },
+          {
+            text: "Cerrar",
+            style: "cancel"
+          }
+        ]
+      );
+    } else {
+      setViewMode('map');
+      showSnackbar('Cambiando a vista de mapa...');
+    }
   };
 
   const renderTripItem = ({ item }: { item: Trip }) => (
@@ -120,17 +247,21 @@ export default function SearchTripsScreen({
       <Card.Content style={styles.cardContent}>
         <View style={styles.tripHeader}>
           <View style={styles.driverInfo}>
-            <Avatar.Text size={48} label={item.driverName.split(' ').map(n => n[0]).join('')} style={styles.driverAvatar} />
+            <Avatar.Text 
+              size={56} 
+              label={item.driverName.split(' ').map(n => n[0]).join('')} 
+              style={[styles.driverAvatar, { backgroundColor: '#1B5E96' }]}
+            />
             <View style={styles.driverDetails}>
               <View style={styles.nameRow}>
                 <Text variant="titleMedium" style={styles.driverName}>{item.driverName}</Text>
                 {item.verified && (
-                  <Icon source="shield-check" size={16} color="#2E7D32" />
+                  <MaterialIcons name="verified" size={18} color="#2E7D32" />
                 )}
               </View>
               <Text variant="bodySmall" style={styles.program}>{item.program}</Text>
               <View style={styles.ratingRow}>
-                <Icon source="star" size={14} color="#FFD700" />
+                <MaterialIcons name="star" size={16} color="#FFD700" />
                 <Text variant="bodySmall" style={styles.rating}>{item.rating}</Text>
               </View>
             </View>
@@ -144,240 +275,262 @@ export default function SearchTripsScreen({
             >
               {item.type === 'offer' ? 'Oferta' : 'Solicitud'}
             </Badge>
-            <Text variant="titleLarge" style={styles.price}>${item.price}</Text>
+            
           </View>
         </View>
 
         <Divider style={styles.divider} />
 
         <View style={styles.routeContainer}>
-          <Icon source="map-marker-path" size={20} color="#2E7D32" />
-          <Text variant="bodyLarge" style={styles.routeText}>{item.route}</Text>
+          <MaterialIcons name="alt-route" size={24} color="#1B5E96" />
+          <Text variant="titleMedium" style={styles.routeText}>{item.route}</Text>
         </View>
 
         <View style={styles.tripDetailsGrid}>
           <View style={styles.detailItem}>
-            <Icon source="clock" size={16} color="#666" />
+            <MaterialIcons name="schedule" size={18} color="#7F8C8D" />
             <Text variant="bodyMedium" style={styles.detailText}>{item.time}</Text>
           </View>
           <View style={styles.detailItem}>
-            <Icon source="account-multiple" size={16} color="#666" />
+            <MaterialIcons name="people" size={18} color="#7F8C8D" />
             <Text variant="bodyMedium" style={styles.detailText}>{item.availableSeats} cupos</Text>
           </View>
           <View style={styles.detailItem}>
-            <Icon source="map-marker-distance" size={16} color="#666" />
+            <MaterialIcons name="straighten" size={18} color="#7F8C8D" />
             <Text variant="bodyMedium" style={styles.detailText}>{item.distance}</Text>
           </View>
         </View>
 
         <View style={styles.meetingPointContainer}>
-          <Icon source="map-marker-account" size={16} color="#0D4A2B" />
-          <Text variant="bodySmall" style={styles.meetingPoint}>
+          <MaterialIcons name="location-on" size={18} color="#1B5E96" />
+          <Text variant="bodyMedium" style={styles.meetingPoint}>
             Punto de encuentro: {item.meetingPoint}
           </Text>
         </View>
 
         <View style={styles.actionButtons}>
-          <Button 
-            mode="outlined" 
+          <TouchableOpacity 
             style={styles.contactButton}
-            onPress={() => showSnackbar('Chat iniciado')}
-            icon="message"
+            onPress={() => handleContactDriver(item.driverName)}
           >
-            Contactar
-          </Button>
-          <Button 
-            mode="contained" 
-            style={styles.primaryButton}
-            onPress={() => {
-              // Lógica modificada: redirigir a 'chompi' si es una oferta
-              if (item.type === 'offer') {
-                onNavigateToChompi();
-              } else {
-                showSnackbar('Oferta enviada');
-              }
-            }}
-            icon={item.type === 'offer' ? 'hand-wave' : 'car'}
+            <MaterialIcons name="chat" size={18} color="#1B5E96" />
+            <Text style={styles.contactButtonText}>Contactar</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={[styles.primaryButton, item.type === 'offer' ? styles.requestButton : styles.offerButton]}
+            onPress={() => handleTripAction(item)}
           >
-            {item.type === 'offer' ? 'Solicitar' : 'Ofrecer'}
-          </Button>
+            <MaterialIcons 
+              name={item.type === 'offer' ? 'waving-hand' : 'directions-car'} 
+              size={18} 
+              color="#FFFFFF" 
+            />
+            <Text style={styles.primaryButtonText}>
+              {item.type === 'offer' ? 'Solicitar' : 'Ofrecer'}
+            </Text>
+          </TouchableOpacity>
         </View>
       </Card.Content>
     </Card>
   );
 
   return (
-    <View style={styles.container}>
-      <StatusBar backgroundColor="#0D4A2B" barStyle="light-content" />
-      
-      {/* Header */}
-      <Surface style={styles.headerSurface}>
-        <View style={styles.headerRow}>
-          <IconButton
-            icon="arrow-left"
-            iconColor="white"
-            size={24}
-            onPress={onBack}
-          />
-          <View style={styles.headerContent}>
-            <Avatar.Icon size={48} icon="magnify" style={styles.headerAvatar} />
-            <Text variant="headlineMedium" style={styles.headerTitle}>
-              Buscar Viajes
-            </Text>
-            <Text variant="bodyMedium" style={styles.headerSubtitle}>
-              Encuentra tu viaje ideal
-            </Text>
-          </View>
-          <IconButton
-            icon={viewMode === 'list' ? 'map' : 'view-list'}
-            iconColor="white"
-            size={24}
-            onPress={() => setViewMode(viewMode === 'list' ? 'map' : 'list')}
-          />
-        </View>
-      </Surface>
-
-      {/* Search and Filters */}
-      <View style={styles.searchContainer}>
-        <Searchbar
-          placeholder="Buscar por ruta, barrio o conductor..."
-          onChangeText={setSearchQuery}
-          value={searchQuery}
-          style={styles.searchbar}
-          iconColor="#2E7D32"
-          theme={{ colors: { primary: '#2E7D32' } }}
-        />
+    <PaperProvider theme={customTheme}>
+      <View style={styles.container}>
+        <StatusBar backgroundColor="#1B5E96" barStyle="light-content" />
         
-        <View style={styles.filterRow}>
-          <Button
-            mode={showFilters ? 'contained' : 'outlined'}
-            style={[styles.filterButton, showFilters && styles.filterButtonActive]}
-            icon="filter"
-            onPress={() => setShowFilters(!showFilters)}
-          >
-            Filtros {selectedFilters.length > 0 && `(${selectedFilters.length})`}
-          </Button>
-          {selectedFilters.length > 0 && (
-            <Button
-              mode="text"
-              onPress={clearFilters}
-              textColor="#666"
+        {/* Header con gradiente */}
+        <LinearGradient
+          colors={['#1B5E96', '#2980B9']}
+          style={styles.headerGradient}
+        >
+          <View style={styles.headerRow}>
+            <TouchableOpacity onPress={onBack} style={styles.backButton}>
+              <MaterialIcons name="arrow-back" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+            
+            <View style={styles.headerContent}>
+              <View style={styles.headerIconContainer}>
+                <MaterialIcons name="search" size={32} color="#FFFFFF" />
+              </View>
+              <Text variant="headlineMedium" style={styles.headerTitle}>
+                Buscar Chompi
+              </Text>
+              <Text variant="bodyMedium" style={styles.headerSubtitle}>
+                Encuentra tu Chompi ideal
+              </Text>
+            </View>
+            
+            <TouchableOpacity 
+              onPress={() => {
+                setViewMode(viewMode === 'list' ? 'map' : 'list');
+                if (viewMode === 'list') handleMapView();
+              }} 
+              style={styles.backButton}
             >
-              Limpiar
-            </Button>
+              <MaterialIcons 
+                name={viewMode === 'list' ? 'map' : 'list'} 
+                size={24} 
+                color="#FFFFFF" 
+              />
+            </TouchableOpacity>
+          </View>
+        </LinearGradient>
+
+        {/* Search and Filters */}
+        <View style={styles.searchContainer}>
+          <Searchbar
+            placeholder="Buscar por ruta, barrio o conductor..."
+            onChangeText={handleSearch}
+            value={searchQuery}
+            style={styles.searchbar}
+            iconColor="#1B5E96"
+            loading={isSearching}
+            theme={{ colors: { primary: '#1B5E96' } }}
+          />
+          
+          <View style={styles.filterRow}>
+            <TouchableOpacity
+              style={[styles.filterButton, showFilters && styles.filterButtonActive]}
+              onPress={() => setShowFilters(!showFilters)}
+            >
+              <MaterialIcons 
+                name="filter-list" 
+                size={20} 
+                color={showFilters ? "#FFFFFF" : "#1B5E96"} 
+              />
+              <Text style={[styles.filterButtonText, showFilters && styles.filterButtonTextActive]}>
+                Filtros {selectedFilters.length > 0 && `(${selectedFilters.length})`}
+              </Text>
+            </TouchableOpacity>
+            
+            {selectedFilters.length > 0 && (
+              <TouchableOpacity onPress={clearFilters}>
+                <Text style={styles.clearFiltersText}>Limpiar</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {showFilters && (
+            <Card style={styles.filtersCard}>
+              <Card.Content style={styles.filtersContent}>
+                <Text variant="titleMedium" style={styles.filtersTitle}>
+                  Filtrar resultados
+                </Text>
+                <View style={styles.filtersContainer}>
+                  {filterOptions.map((filter) => (
+                    <Chip
+                      key={filter.id}
+                      selected={selectedFilters.includes(filter.id)}
+                      onPress={() => toggleFilter(filter.id)}
+                      icon={() => <MaterialIcons name={filter.icon} size={16} color={selectedFilters.includes(filter.id) ? filter.color : '#7F8C8D'} />}
+                      style={[
+                        styles.filterChip,
+                        selectedFilters.includes(filter.id) && { 
+                          backgroundColor: filter.color + '20',
+                          borderColor: filter.color,
+                          borderWidth: 1
+                        }
+                      ]}
+                      textStyle={[
+                        styles.filterChipText,
+                        selectedFilters.includes(filter.id) && { color: filter.color }
+                      ]}
+                    >
+                      {filter.label}
+                    </Chip>
+                  ))}
+                </View>
+              </Card.Content>
+            </Card>
           )}
         </View>
 
-        {showFilters && (
-          <Card style={styles.filtersCard}>
-            <Card.Content>
-              <Text variant="titleMedium" style={styles.filtersTitle}>
-                Filtrar resultados
-              </Text>
-              <View style={styles.filtersContainer}>
-                {filterOptions.map((filter) => (
-                  <Chip
-                    key={filter.id}
-                    selected={selectedFilters.includes(filter.id)}
-                    onPress={() => toggleFilter(filter.id)}
-                    icon={filter.icon}
-                    style={[
-                      styles.filterChip,
-                      selectedFilters.includes(filter.id) && { 
-                        backgroundColor: filter.color + '20',
-                        borderColor: filter.color 
-                      }
-                    ]}
-                    textStyle={[
-                      styles.filterChipText,
-                      selectedFilters.includes(filter.id) && { color: filter.color }
-                    ]}
-                  >
-                    {filter.label}
-                  </Chip>
-                ))}
+        {/* Content */}
+        {viewMode === 'list' ? (
+          <FlatList
+            data={mockTrips}
+            renderItem={renderTripItem}
+            keyExtractor={(item) => item.id}
+            style={styles.tripsList}
+            contentContainerStyle={styles.tripsListContent}
+            showsVerticalScrollIndicator={false}
+          />
+        ) : (
+          <Card style={styles.mapCard}>
+            <Card.Content style={styles.mapPlaceholder}>
+              <View style={styles.mapIconContainer}>
+                <MaterialIcons name="map" size={80} color="#1B5E96" />
               </View>
+              <Text variant="headlineMedium" style={styles.mapTitle}>Vista de Mapa</Text>
+              <Text variant="bodyLarge" style={styles.mapText}>
+                Aquí se mostraría el mapa interactivo con las rutas y puntos de encuentro
+              </Text>
+              <TouchableOpacity 
+                style={styles.mapButton}
+                onPress={() => showSnackbar('Cargando mapa interactivo...')}
+              >
+                <MaterialIcons name="location-on" size={20} color="#1B5E96" />
+                <Text style={styles.mapButtonText}>Mostrar en mapa</Text>
+              </TouchableOpacity>
             </Card.Content>
           </Card>
         )}
-      </View>
 
-      {/* Content */}
-      {viewMode === 'list' ? (
-        <FlatList
-          data={mockTrips}
-          renderItem={renderTripItem}
-          keyExtractor={(item) => item.id}
-          style={styles.tripsList}
-          contentContainerStyle={styles.tripsListContent}
-          showsVerticalScrollIndicator={false}
+        {/* FAB */}
+        <FAB
+          icon={() => <MaterialIcons name="notifications" size={24} color="#FFFFFF" />}
+          style={[styles.fab, alertsEnabled && styles.fabActive]}
+          onPress={toggleAlerts}
+          label={alertsEnabled ? "Alertas ON" : "Alertas"}
+          color="#FFFFFF"
         />
-      ) : (
-        <Card style={styles.mapCard}>
-          <Card.Content style={styles.mapPlaceholder}>
-            <Icon source="map" size={80} color="#2E7D32" />
-            <Text variant="headlineMedium" style={styles.mapTitle}>Vista de Mapa</Text>
-            <Text variant="bodyLarge" style={styles.mapText}>
-              Aquí se mostraría el mapa interactivo con las rutas y puntos de encuentro
-            </Text>
-            <Button 
-              mode="outlined" 
-              style={styles.mapButton}
-              icon="map-marker"
-            >
-              Mostrar en mapa
-            </Button>
-          </Card.Content>
-        </Card>
-      )}
-
-      {/* FAB */}
-      <FAB
-        icon="bell"
-        style={styles.fab}
-        onPress={() => showSnackbar('Notificaciones de coincidencias activadas')}
-        label="Alertas"
-        color="white"
-      />
-    </View>
+      </View>
+    </PaperProvider>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F7FA',
+    backgroundColor: '#F8F9FA',
   },
-  headerSurface: {
-    backgroundColor: '#0D4A2B',
-    borderBottomLeftRadius: 32,
-    borderBottomRightRadius: 32,
+  headerGradient: {
+    paddingTop: 40,
     paddingBottom: 20,
-    elevation: 8,
+    paddingHorizontal: 16,
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: 40,
-    paddingHorizontal: 16,
+    paddingTop: 20,
+  },
+  backButton: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.2)',
   },
   headerContent: {
     flex: 1,
     alignItems: 'center',
+    paddingHorizontal: 20,
   },
-  headerAvatar: {
-    backgroundColor: '#2E7D32',
-    marginBottom: 8,
+  headerIconContainer: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    padding: 12,
+    borderRadius: 24,
+    marginBottom: 12,
   },
   headerTitle: {
-    color: 'white',
+    color: '#FFFFFF',
     fontWeight: '700',
     textAlign: 'center',
+    marginBottom: 8,
   },
   headerSubtitle: {
     color: 'rgba(255,255,255,0.8)',
     textAlign: 'center',
-    marginTop: 4,
   },
   searchContainer: {
     padding: 20,
@@ -385,9 +538,9 @@ const styles = StyleSheet.create({
   },
   searchbar: {
     marginBottom: 16,
-    elevation: 4,
+    elevation: 8,
     borderRadius: 16,
-    backgroundColor: 'white',
+    backgroundColor: '#FFFFFF',
   },
   filterRow: {
     flexDirection: 'row',
@@ -396,21 +549,43 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   filterButton: {
-    borderColor: '#2E7D32',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#1B5E96',
+    backgroundColor: '#FFFFFF',
+    elevation: 2,
   },
   filterButtonActive: {
-    backgroundColor: '#2E7D32',
+    backgroundColor: '#1B5E96',
+  },
+  filterButtonText: {
+    color: '#1B5E96',
+    marginLeft: 6,
+    fontWeight: '600',
+  },
+  filterButtonTextActive: {
+    color: '#FFFFFF',
+  },
+  clearFiltersText: {
+    color: '#7F8C8D',
+    fontSize: 14,
   },
   filtersCard: {
-    elevation: 4,
+    elevation: 8,
     borderRadius: 16,
-    backgroundColor: 'white',
+    backgroundColor: '#FFFFFF',
+  },
+  filtersContent: {
+    padding: 20,
   },
   filtersTitle: {
     marginBottom: 16,
-    color: '#0D4A2B',
-    fontWeight: '600',
+    color: '#2C3E50',
+    fontWeight: '700',
   },
   filtersContainer: {
     flexDirection: 'row',
@@ -418,10 +593,12 @@ const styles = StyleSheet.create({
   },
   filterChip: {
     margin: 4,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#F8F9FA',
+    elevation: 2,
   },
   filterChipText: {
     fontSize: 12,
+    color: '#7F8C8D',
   },
   tripsList: {
     flex: 1,
@@ -432,9 +609,13 @@ const styles = StyleSheet.create({
   },
   tripCard: {
     marginBottom: 16,
-    elevation: 6,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
     borderRadius: 20,
-    backgroundColor: 'white',
+    backgroundColor: '#FFFFFF',
   },
   cardContent: {
     padding: 20,
@@ -450,69 +631,71 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   driverAvatar: {
-    backgroundColor: '#2E7D32',
+    elevation: 4,
   },
   driverDetails: {
-    marginLeft: 12,
+    marginLeft: 16,
     flex: 1,
   },
   nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
   },
   driverName: {
     fontWeight: '700',
-    color: '#0D4A2B',
+    color: '#2C3E50',
   },
   program: {
-    color: '#666',
-    marginTop: 2,
+    color: '#7F8C8D',
+    marginTop: 4,
     fontSize: 12,
   },
   ratingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 4,
-    gap: 2,
+    marginTop: 6,
+    gap: 4,
   },
   rating: {
-    color: '#FFD700',
+    color: '#7F8C8D',
     fontWeight: '600',
-    fontSize: 12,
+    fontSize: 13,
   },
   tripTypeContainer: {
     alignItems: 'flex-end',
   },
   typeBadge: {
-    marginBottom: 8,
+    marginBottom: 12,
+    elevation: 2,
   },
   offerBadge: {
     backgroundColor: '#2E7D32',
   },
   requestBadge: {
-    backgroundColor: '#FF9800',
+    backgroundColor: '#F39C12',
   },
   price: {
     fontWeight: '700',
-    color: '#0D4A2B',
+    color: '#2C3E50',
   },
   divider: {
-    backgroundColor: '#E0E0E0',
+    backgroundColor: '#ECF0F1',
     marginBottom: 16,
   },
   routeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F0F8F0',
-    padding: 12,
+    padding: 16,
     borderRadius: 12,
     marginBottom: 16,
+    elevation: 2,
   },
   routeText: {
-    marginLeft: 8,
-    fontWeight: '600',
-    color: '#0D4A2B',
+    marginLeft: 12,
+    fontWeight: '700',
+    color: '#2C3E50',
     flex: 1,
   },
   tripDetailsGrid: {
@@ -523,25 +706,27 @@ const styles = StyleSheet.create({
   detailItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
   },
   detailText: {
-    color: '#666',
+    color: '#7F8C8D',
     fontSize: 13,
+    fontWeight: '500',
   },
   meetingPointContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#E8F5E8',
-    padding: 8,
+    backgroundColor: '#E8F4FD',
+    padding: 12,
     borderRadius: 8,
     marginBottom: 16,
   },
   meetingPoint: {
-    marginLeft: 6,
-    color: '#0D4A2B',
+    marginLeft: 8,
+    color: '#2C3E50',
     flex: 1,
-    fontSize: 12,
+    fontSize: 13,
+    fontWeight: '500',
   },
   actionButtons: {
     flexDirection: 'row',
@@ -549,20 +734,53 @@ const styles = StyleSheet.create({
   },
   contactButton: {
     flex: 1,
-    borderColor: '#2E7D32',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: '#1B5E96',
+    elevation: 2,
+    gap: 6,
+  },
+  contactButtonText: {
+    color: '#1B5E96',
+    fontWeight: '600',
   },
   primaryButton: {
     flex: 1,
-    backgroundColor: '#2E7D32',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     borderRadius: 12,
+    elevation: 4,
+    gap: 6,
+  },
+  requestButton: {
+    backgroundColor: '#2E7D32',
+  },
+  offerButton: {
+    backgroundColor: '#F39C12',
+  },
+  primaryButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
   },
   mapCard: {
     margin: 20,
     flex: 1,
-    elevation: 6,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
     borderRadius: 20,
-    backgroundColor: 'white',
+    backgroundColor: '#FFFFFF',
   },
   mapPlaceholder: {
     alignItems: 'center',
@@ -570,29 +788,50 @@ const styles = StyleSheet.create({
     minHeight: 400,
     padding: 40,
   },
+  mapIconContainer: {
+    backgroundColor: '#E8F4FD',
+    padding: 24,
+    borderRadius: 40,
+    marginBottom: 24,
+  },
   mapTitle: {
-    color: '#0D4A2B',
+    color: '#2C3E50',
     fontWeight: '700',
-    marginTop: 20,
+    marginBottom: 16,
     textAlign: 'center',
   },
   mapText: {
     textAlign: 'center',
-    color: '#666',
-    marginTop: 12,
+    color: '#7F8C8D',
+    marginBottom: 32,
     lineHeight: 24,
   },
   mapButton: {
-    marginTop: 24,
-    borderColor: '#2E7D32',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
     borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: '#1B5E96',
+    elevation: 4,
+    gap: 8,
+  },
+  mapButtonText: {
+    color: '#1B5E96',
+    fontWeight: '600',
   },
   fab: {
     position: 'absolute',
     margin: 20,
     right: 0,
     bottom: 0,
-    backgroundColor: '#2E7D32',
+    backgroundColor: '#F39C12',
     borderRadius: 16,
+    elevation: 8,
+  },
+  fabActive: {
+    backgroundColor: '#2E7D32',
   },
 });

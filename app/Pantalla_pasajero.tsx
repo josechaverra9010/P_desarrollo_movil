@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, StyleSheet, FlatList } from 'react-native';
+import React, { useState } from 'react';
+import { View, StyleSheet, FlatList, TouchableOpacity, Alert, StatusBar } from 'react-native';
 import {
   Surface,
   Text,
@@ -8,10 +8,27 @@ import {
   Chip,
   Badge,
   Button,
-  Icon,
+  FAB,
   TouchableRipple,
   Tooltip,
+  Provider as PaperProvider,
+  DefaultTheme,
 } from 'react-native-paper';
+import { LinearGradient } from 'expo-linear-gradient';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+
+// Tema personalizado consistente
+const customTheme = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    primary: '#1B5E96',
+    accent: '#F39C12',
+    background: '#F8F9FA',
+    surface: '#FFFFFF',
+    text: '#2C3E50',
+  },
+};
 
 interface User {
   id: string;
@@ -26,18 +43,29 @@ interface User {
 interface PassengerDashboardProps {
   user: User;
   searchQuery: string;
+  showSnackbar?: (message: string) => void;
+  onNavigateToSearch?: () => void;
+  onNavigateToChat?: () => void;
 }
 
-export default function PassengerDashboard({ user, searchQuery }: PassengerDashboardProps) {
-  // Datos estÃ¡ticos - sin funcionalidad
+export default function PassengerDashboard({ 
+  user, 
+  searchQuery,
+  showSnackbar = (msg: string) => console.log(msg),
+  onNavigateToSearch = () => {},
+  onNavigateToChat = () => {}
+}: PassengerDashboardProps) {
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Datos estáticos - con funcionalidad simulada
   const availableTrips = [
     {
       id: '1',
       driverId: 'driver1',
       driverName: 'Carlos Mosquera',
       driverRating: 4.8,
-      driverProgram: 'IngenierÃ­a Civil',
-      origin: 'Centro de QuibdÃ³',
+      driverProgram: 'Ingeniería Civil',
+      origin: 'Centro de Quibdó',
       destination: 'UTCH Campus',
       departureTime: '07:30',
       availableSeats: 2,
@@ -47,15 +75,16 @@ export default function PassengerDashboard({ user, searchQuery }: PassengerDashb
       estimatedDuration: '15 min',
       meetingPoint: 'Parque Centenario',
       status: 'available',
-      tags: ['MaÃ±ana', 'Campus', 'Confiable']
+      tags: ['Mañana', 'Campus', 'Confiable'],
+      verified: true
     },
     {
       id: '2',
       driverId: 'driver2',
-      driverName: 'Ana Patricia RenterÃ­a',
+      driverName: 'Ana Patricia Rentería',
       driverRating: 4.9,
-      driverProgram: 'AdministraciÃ³n de Empresas',
-      origin: 'Barrio NiÃ±o JesÃºs',
+      driverProgram: 'Administración de Empresas',
+      origin: 'Barrio Niño Jesús',
       destination: 'UTCH Campus',
       departureTime: '13:00',
       availableSeats: 1,
@@ -65,25 +94,27 @@ export default function PassengerDashboard({ user, searchQuery }: PassengerDashb
       estimatedDuration: '12 min',
       meetingPoint: 'Terminal de Transporte',
       status: 'available',
-      tags: ['Tarde', 'Cerca', 'EconÃ³mico']
+      tags: ['Tarde', 'Cerca', 'Económico'],
+      verified: true
     },
     {
       id: '3',
       driverId: 'driver3',
-      driverName: 'Miguel CÃ³rdoba',
+      driverName: 'Miguel Córdoba',
       driverRating: 4.6,
-      driverProgram: 'IngenierÃ­a Ambiental',
+      driverProgram: 'Ingeniería Ambiental',
       origin: 'UTCH Campus',
-      destination: 'Centro de QuibdÃ³',
+      destination: 'Centro de Quibdó',
       departureTime: '17:45',
       availableSeats: 3,
       totalSeats: 4,
       price: 3500,
       distance: '8.5 km',
       estimatedDuration: '18 min',
-      meetingPoint: 'PorterÃ­a Principal UTCH',
+      meetingPoint: 'Portería Principal UTCH',
       status: 'available',
-      tags: ['Regreso', 'Centro', 'Disponible']
+      tags: ['Regreso', 'Centro', 'Disponible'],
+      verified: false
     }
   ];
 
@@ -107,13 +138,13 @@ export default function PassengerDashboard({ user, searchQuery }: PassengerDashb
     }
   ];
 
-  // Funciones auxiliares para estilos - sin lÃ³gica de negocio
+  // Funciones con funcionalidad simulada
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'pending': return '#FF9500';
-      case 'matched': return '#40916C';
-      case 'cancelled': return '#FF3B30';
-      default: return '#666';
+      case 'pending': return '#F39C12';
+      case 'matched': return '#2E7D32';
+      case 'cancelled': return '#E74C3C';
+      default: return '#7F8C8D';
     }
   };
 
@@ -126,26 +157,108 @@ export default function PassengerDashboard({ user, searchQuery }: PassengerDashb
     }
   };
 
-  // Componente de tarjeta de viaje - solo visual
+  const handleRefresh = () => {
+    setRefreshing(true);
+    setTimeout(() => {
+      setRefreshing(false);
+      showSnackbar('Lista actualizada');
+    }, 1500);
+  };
+
+  const handleRequestTrip = (trip: any) => {
+    Alert.alert(
+      "Solicitar Chompi",
+      `¿Deseas solicitar el  Chompi con ${trip.driverName}?\n\nRuta: ${trip.origin} → ${trip.destination}\nHora: ${trip.departureTime}\n`,
+      [
+        {
+          text: "Cancelar",
+          style: "cancel"
+        },
+        {
+          text: "Solicitar",
+          onPress: () => {
+            showSnackbar(`Solicitud enviada a ${trip.driverName}`);
+          }
+        }
+      ]
+    );
+  };
+
+  const handleContactDriver = (driverName: string) => {
+    Alert.alert(
+      "Contactar Conductor",
+      `¿Cómo deseas contactar a ${driverName}?`,
+      [
+        {
+          text: "Cancelar",
+          style: "cancel"
+        },
+        {
+          text: "Chat",
+          onPress: () => {
+            onNavigateToChat();
+            showSnackbar(`Iniciando chat con ${driverName}`);
+          }
+        },
+        {
+          text: "Llamar",
+          onPress: () => {
+            showSnackbar(`Llamando a ${driverName}...`);
+          }
+        }
+      ]
+    );
+  };
+
+  const handleCancelRequest = (requestId: string) => {
+    Alert.alert(
+      "Cancelar Solicitud",
+      "¿Estás seguro de que deseas cancelar esta solicitud?",
+      [
+        {
+          text: "No",
+          style: "cancel"
+        },
+        {
+          text: "Sí, cancelar",
+          style: "destructive",
+          onPress: () => {
+            showSnackbar('Solicitud cancelada');
+          }
+        }
+      ]
+    );
+  };
+
+  const handleViewConfirmedTrip = (tripId: string) => {
+    showSnackbar('Mostrando detalles del  Chompi confirmado');
+  };
+
+  // Componente de tarjeta de  Chompi mejorado
   const renderTripCard = ({ item: trip }) => (
     <Card style={styles.tripCard} key={trip.id}>
-      <Card.Content>
+      <Card.Content style={styles.cardContent}>
         <View style={styles.tripHeader}>
           <View style={styles.driverInfo}>
             <Avatar.Text 
-              size={40} 
+              size={56} 
               label={trip.driverName.split(' ').map(n => n[0]).join('')}
               style={styles.driverAvatar}
             />
             <View style={styles.driverDetails}>
-              <Text variant="titleMedium" style={styles.driverName}>
-                {trip.driverName}
-              </Text>
+              <View style={styles.nameRow}>
+                <Text variant="titleMedium" style={styles.driverName}>
+                  {trip.driverName}
+                </Text>
+                {trip.verified && (
+                  <MaterialIcons name="verified" size={18} color="#2E7D32" />
+                )}
+              </View>
               <Text variant="bodySmall" style={styles.driverProgram}>
                 {trip.driverProgram}
               </Text>
               <View style={styles.ratingContainer}>
-                <Icon source="star" size={14} color="#FFD700" />
+                <MaterialIcons name="star" size={16} color="#FFD700" />
                 <Text variant="bodySmall" style={styles.rating}>
                   {trip.driverRating}
                 </Text>
@@ -162,90 +275,100 @@ export default function PassengerDashboard({ user, searchQuery }: PassengerDashb
         </View>
 
         <View style={styles.routeContainer}>
-          <View style={styles.routeItem}>
-            <Icon source="map-marker" size={20} color="#40916C" />
-            <Text variant="bodyMedium" style={styles.routeText}>
-              {trip.origin}
-            </Text>
-          </View>
-          
-          <View style={styles.routeArrow}>
-            <Icon source="arrow-right" size={16} color="#666" />
-          </View>
-          
-          <View style={styles.routeItem}>
-            <Icon source="flag-checkered" size={20} color="#FF6B35" />
-            <Text variant="bodyMedium" style={styles.routeText}>
-              {trip.destination}
-            </Text>
+          <MaterialIcons name="alt-route" size={24} color="#1B5E96" />
+          <View style={styles.routeDetails}>
+            <View style={styles.routeItem}>
+              <MaterialIcons name="radio-button-checked" size={16} color="#2E7D32" />
+              <Text variant="bodyMedium" style={styles.routeText}>
+                {trip.origin}
+              </Text>
+            </View>
+            
+            <View style={styles.routeArrow}>
+              <MaterialIcons name="arrow-downward" size={16} color="#7F8C8D" />
+            </View>
+            
+            <View style={styles.routeItem}>
+              <MaterialIcons name="location-on" size={16} color="#E74C3C" />
+              <Text variant="bodyMedium" style={styles.routeText}>
+                {trip.destination}
+              </Text>
+            </View>
           </View>
         </View>
 
         <View style={styles.tripDetails}>
           <View style={styles.detailItem}>
-            <Icon source="clock" size={16} color="#666" />
+            <MaterialIcons name="schedule" size={18} color="#7F8C8D" />
             <Text variant="bodySmall" style={styles.detailText}>
               {trip.departureTime}
             </Text>
           </View>
           
           <View style={styles.detailItem}>
-            <Icon source="account-multiple" size={16} color="#666" />
+            <MaterialIcons name="people" size={18} color="#7F8C8D" />
             <Text variant="bodySmall" style={styles.detailText}>
-              {trip.availableSeats}/{trip.totalSeats} disponibles
+              {trip.availableSeats}/{trip.totalSeats} cupos
             </Text>
           </View>
           
           <View style={styles.detailItem}>
-            <Icon source="map-marker-distance" size={16} color="#666" />
+            <MaterialIcons name="straighten" size={18} color="#7F8C8D" />
             <Text variant="bodySmall" style={styles.detailText}>
-              {trip.distance} â€¢ {trip.estimatedDuration}
+              {trip.distance} • {trip.estimatedDuration}
             </Text>
           </View>
         </View>
 
         <View style={styles.meetingPoint}>
-          <Icon source="map-marker-account" size={16} color="#1B4332" />
+          <MaterialIcons name="location-on" size={18} color="#1B5E96" />
           <Text variant="bodySmall" style={styles.meetingText}>
-            Punto de encuentro: {trip.meetingPoint}
+            Encuentro: {trip.meetingPoint}
           </Text>
         </View>
 
         <View style={styles.tagsContainer}>
           {trip.tags.map((tag, index) => (
-            <Chip key={index} compact style={styles.tripTag}>
+            <Chip key={index} compact style={styles.tripTag} textStyle={styles.tagText}>
               {tag}
             </Chip>
           ))}
         </View>
 
         <View style={styles.tripActions}>
-          <Button
-            mode="outlined"
-            style={styles.detailsButton}
-            compact
+          <TouchableOpacity
+            style={styles.contactButton}
+            onPress={() => handleContactDriver(trip.driverName)}
           >
-            Ver detalles
-          </Button>
-          <Button
-            mode="contained"
+            <MaterialIcons name="chat" size={18} color="#1B5E96" />
+            <Text style={styles.contactButtonText}>Contactar</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={[styles.requestButton, trip.availableSeats === 0 && styles.disabledButton]}
+            onPress={() => trip.availableSeats > 0 && handleRequestTrip(trip)}
             disabled={trip.availableSeats === 0}
-            style={styles.joinButton}
-            compact
           >
-            {trip.availableSeats > 0 ? 'Solicitar' : 'Sin cupos'}
-          </Button>
+            <MaterialIcons 
+              name="waving-hand" 
+              size={18} 
+              color={trip.availableSeats > 0 ? "#FFFFFF" : "#7F8C8D"} 
+            />
+            <Text style={[styles.requestButtonText, trip.availableSeats === 0 && styles.disabledButtonText]}>
+              {trip.availableSeats > 0 ? 'Solicitar' : 'Sin cupos'}
+            </Text>
+          </TouchableOpacity>
         </View>
       </Card.Content>
     </Card>
   );
 
-  // Componente de tarjeta de solicitud - solo visual
+  // Componente de tarjeta de solicitud mejorado
   const renderRequestCard = ({ item: request }) => (
     <Card style={styles.requestCard} key={request.id}>
-      <Card.Content>
+      <Card.Content style={styles.requestContent}>
         <View style={styles.requestHeader}>
-          <Text variant="titleMedium">Mi Solicitud</Text>
+          <Text variant="titleMedium" style={styles.requestTitle}>Mi Solicitud</Text>
           <Badge 
             style={[styles.statusBadge, { backgroundColor: getStatusColor(request.status) }]}
           >
@@ -253,21 +376,19 @@ export default function PassengerDashboard({ user, searchQuery }: PassengerDashb
           </Badge>
         </View>
 
-        <View style={styles.routeContainer}>
+        <View style={styles.requestRoute}>
           <View style={styles.routeItem}>
-            <Icon source="map-marker" size={18} color="#40916C" />
-            <Text variant="bodyMedium" style={styles.routeText}>
+            <MaterialIcons name="radio-button-checked" size={16} color="#2E7D32" />
+            <Text variant="bodyMedium" style={styles.requestRouteText}>
               {request.origin}
             </Text>
           </View>
           
-          <View style={styles.routeArrow}>
-            <Icon source="arrow-right" size={16} color="#666" />
-          </View>
+          <MaterialIcons name="arrow-downward" size={16} color="#7F8C8D" />
           
           <View style={styles.routeItem}>
-            <Icon source="flag-checkered" size={18} color="#FF6B35" />
-            <Text variant="bodyMedium" style={styles.routeText}>
+            <MaterialIcons name="location-on" size={16} color="#E74C3C" />
+            <Text variant="bodyMedium" style={styles.requestRouteText}>
               {request.destination}
             </Text>
           </View>
@@ -275,90 +396,150 @@ export default function PassengerDashboard({ user, searchQuery }: PassengerDashb
 
         <View style={styles.requestDetails}>
           <Text variant="bodySmall" style={styles.requestTime}>
-            Hora solicitada: {request.requestedTime}
+            Hora: {request.requestedTime}
           </Text>
           <Text variant="bodySmall" style={styles.requestDate}>
             Creado: {new Date(request.createdAt).toLocaleDateString()}
           </Text>
         </View>
 
-        {request.status === 'pending' && (
-          <Button
-            mode="outlined"
-            style={styles.cancelButton}
-            textColor="#FF3B30"
-            compact
-          >
-            Cancelar solicitud
-          </Button>
-        )}
+        <View style={styles.requestActions}>
+          {request.status === 'pending' && (
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={() => handleCancelRequest(request.id)}
+            >
+              <MaterialIcons name="cancel" size={16} color="#E74C3C" />
+              <Text style={styles.cancelButtonText}>Cancelar</Text>
+            </TouchableOpacity>
+          )}
 
-        {request.status === 'matched' && request.matchedTripId && (
-          <Button
-            mode="contained"
-            style={styles.viewTripButton}
-            compact
-          >
-            Ver viaje confirmado
-          </Button>
-        )}
+          {request.status === 'matched' && request.matchedTripId && (
+            <TouchableOpacity
+              style={styles.viewTripButton}
+              onPress={() => handleViewConfirmedTrip(request.matchedTripId)}
+            >
+              <MaterialIcons name="visibility" size={16} color="#FFFFFF" />
+              <Text style={styles.viewTripButtonText}>Ver  Chompi</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </Card.Content>
     </Card>
   );
 
   return (
-    <View style={styles.container}>
-      {/* Mis solicitudes activas - solo visual */}
-      {myRequests.length > 0 && (
+    <PaperProvider theme={customTheme}>
+      <View style={styles.container}>
+        <StatusBar backgroundColor="#1B5E96" barStyle="light-content" />
+        
+        {/* Header con gradiente */}
+        <LinearGradient
+          colors={['#1B5E96', '#2980B9']}
+          style={styles.headerGradient}
+        >
+          <View style={styles.headerContent}>
+            <View style={styles.headerIconContainer}>
+              <MaterialIcons name="person" size={32} color="#FFFFFF" />
+            </View>
+            <Text variant="headlineMedium" style={styles.headerTitle}>
+              Mi Dashboard
+            </Text>
+            <Text variant="bodyMedium" style={styles.headerSubtitle}>
+              Encuentra tu Chompi ideal
+            </Text>
+          </View>
+        </LinearGradient>
+
+        {/* Mis solicitudes activas */}
+        {myRequests.length > 0 && (
+          <View style={styles.section}>
+            <Surface style={styles.sectionHeader}>
+              <Text variant="titleMedium" style={styles.sectionTitle}>
+                Mis Solicitudes
+              </Text>
+              <TouchableOpacity onPress={handleRefresh} style={styles.refreshButton}>
+                <MaterialIcons 
+                  name={refreshing ? "hourglass-empty" : "refresh"} 
+                  size={20} 
+                  color="#1B5E96" 
+                />
+              </TouchableOpacity>
+            </Surface>
+            
+            <FlatList
+              data={myRequests}
+              renderItem={renderRequestCard}
+              keyExtractor={(item) => item.id}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.requestsList}
+            />
+          </View>
+        )}
+
+        {/*  Chompis disponibles */}
         <View style={styles.section}>
           <Surface style={styles.sectionHeader}>
             <Text variant="titleMedium" style={styles.sectionTitle}>
-              Mis Solicitudes
+               Chompis Disponibles
             </Text>
-            <Tooltip title="Actualizar">
-              <TouchableRipple style={styles.refreshButton}>
-                <Icon source="refresh" size={20} />
-              </TouchableRipple>
-            </Tooltip>
+            <Badge style={styles.countBadge}>
+              {availableTrips.length}
+            </Badge>
           </Surface>
-          
+
           <FlatList
-            data={myRequests}
-            renderItem={renderRequestCard}
+            data={availableTrips}
+            renderItem={renderTripCard}
             keyExtractor={(item) => item.id}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.requestsList}
+            contentContainerStyle={styles.tripsList}
+            showsVerticalScrollIndicator={false}
           />
         </View>
-      )}
 
-      {/* Viajes disponibles - solo visual */}
-      <View style={styles.section}>
-        <Surface style={styles.sectionHeader}>
-          <Text variant="titleMedium" style={styles.sectionTitle}>
-            Viajes Disponibles
-          </Text>
-          <Badge style={styles.countBadge}>
-            {availableTrips.length}
-          </Badge>
-        </Surface>
-
-        <FlatList
-          data={availableTrips}
-          renderItem={renderTripCard}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.tripsList}
-          showsVerticalScrollIndicator={false}
+        {/* FAB para búsqueda avanzada */}
+        <FAB
+          icon={() => <MaterialIcons name="search" size={24} color="#FFFFFF" />}
+          style={styles.fab}
+          onPress={onNavigateToSearch}
+          label="Buscar"
+          color="#FFFFFF"
         />
       </View>
-    </View>
+    </PaperProvider>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#F8F9FA',
+  },
+  headerGradient: {
+    paddingTop: 40,
+    paddingBottom: 20,
+    paddingHorizontal: 16,
+  },
+  headerContent: {
+    alignItems: 'center',
+    paddingTop: 20,
+  },
+  headerIconContainer: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    padding: 12,
+    borderRadius: 24,
+    marginBottom: 12,
+  },
+  headerTitle: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  headerSubtitle: {
+    color: 'rgba(255,255,255,0.8)',
+    textAlign: 'center',
   },
   section: {
     marginBottom: 10,
@@ -370,18 +551,21 @@ const styles = StyleSheet.create({
     padding: 15,
     marginHorizontal: 15,
     marginBottom: 10,
-    elevation: 1,
+    elevation: 2,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
   },
   sectionTitle: {
-    color: '#1B4332',
-    fontWeight: 'bold',
+    color: '#2C3E50',
+    fontWeight: '700',
   },
   refreshButton: {
-    padding: 5,
-    borderRadius: 15,
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: '#F8F9FA',
   },
   countBadge: {
-    backgroundColor: '#40916C',
+    backgroundColor: '#1B5E96',
   },
   requestsList: {
     paddingHorizontal: 15,
@@ -389,159 +573,277 @@ const styles = StyleSheet.create({
   requestCard: {
     width: 280,
     marginRight: 15,
-    elevation: 2,
+    elevation: 4,
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+  },
+  requestContent: {
+    padding: 16,
   },
   requestHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 12,
+  },
+  requestTitle: {
+    color: '#2C3E50',
+    fontWeight: '600',
   },
   statusBadge: {
     color: 'white',
+    borderRadius: 12,
+  },
+  requestRoute: {
+    alignItems: 'center',
+    marginBottom: 12,
+    padding: 12,
+    backgroundColor: '#F8F9FA',
+    borderRadius: 8,
+  },
+  routeItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 2,
+  },
+  requestRouteText: {
+    marginLeft: 8,
+    color: '#2C3E50',
+    fontWeight: '500',
   },
   requestDetails: {
-    marginTop: 10,
+    marginBottom: 12,
   },
   requestTime: {
-    color: '#666',
+    color: '#7F8C8D',
     marginBottom: 2,
   },
   requestDate: {
-    color: '#999',
+    color: '#BDC3C7',
+    fontSize: 11,
+  },
+  requestActions: {
+    flexDirection: 'row',
+    justifyContent: 'center',
   },
   cancelButton: {
-    marginTop: 10,
-    borderColor: '#FF3B30',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E74C3C',
+    gap: 4,
+  },
+  cancelButtonText: {
+    color: '#E74C3C',
+    fontWeight: '600',
+    fontSize: 12,
   },
   viewTripButton: {
-    marginTop: 10,
-    backgroundColor: '#40916C',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: '#2E7D32',
+    gap: 4,
+  },
+  viewTripButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 12,
   },
   tripsList: {
     paddingHorizontal: 15,
-    paddingBottom: 80,
+    paddingBottom: 100,
   },
   tripCard: {
-    marginBottom: 15,
-    elevation: 2,
+    marginBottom: 16,
+    elevation: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+  },
+  cardContent: {
+    padding: 20,
   },
   tripHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 15,
+    alignItems: 'flex-start',
+    marginBottom: 16,
   },
   driverInfo: {
     flexDirection: 'row',
-    alignItems: 'center',
     flex: 1,
   },
   driverAvatar: {
-    backgroundColor: '#40916C',
+    backgroundColor: '#1B5E96',
+    elevation: 4,
   },
   driverDetails: {
-    marginLeft: 12,
+    marginLeft: 16,
     flex: 1,
   },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   driverName: {
-    fontWeight: 'bold',
-    color: '#1B4332',
+    fontWeight: '700',
+    color: '#2C3E50',
   },
   driverProgram: {
-    color: '#666',
+    color: '#7F8C8D',
     fontSize: 12,
+    marginTop: 2,
   },
   ratingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 2,
+    marginTop: 4,
+    gap: 4,
   },
   rating: {
-    marginLeft: 2,
-    color: '#FFD700',
-    fontWeight: 'bold',
+    color: '#7F8C8D',
+    fontWeight: '600',
   },
   priceContainer: {
     alignItems: 'center',
   },
   price: {
-    fontWeight: 'bold',
-    color: '#1B4332',
+    fontWeight: '700',
+    color: '#2E7D32',
   },
   priceLabel: {
-    color: '#666',
+    color: '#7F8C8D',
     fontSize: 10,
   },
   routeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
-    paddingVertical: 8,
-    backgroundColor: '#F8F9FA',
-    borderRadius: 8,
-    paddingHorizontal: 10,
+    backgroundColor: '#F0F8F0',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 16,
+    elevation: 2,
   },
-  routeItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  routeDetails: {
     flex: 1,
+    marginLeft: 12,
   },
   routeText: {
-    marginLeft: 6,
-    flex: 1,
-    fontSize: 14,
+    marginLeft: 8,
+    color: '#2C3E50',
+    fontWeight: '500',
   },
   routeArrow: {
-    paddingHorizontal: 8,
+    alignItems: 'center',
+    marginVertical: 4,
   },
   tripDetails: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 10,
+    marginBottom: 12,
   },
   detailItem: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 4,
   },
   detailText: {
-    marginLeft: 4,
-    color: '#666',
+    color: '#7F8C8D',
+    fontSize: 12,
+    fontWeight: '500',
   },
   meetingPoint: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#E8F4FD',
+    padding: 12,
+    borderRadius: 8,
     marginBottom: 12,
-    padding: 8,
-    backgroundColor: '#E8F5E8',
-    borderRadius: 6,
   },
   meetingText: {
-    marginLeft: 6,
-    color: '#1B4332',
+    marginLeft: 8,
+    color: '#2C3E50',
     flex: 1,
+    fontSize: 12,
+    fontWeight: '500',
   },
   tagsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginBottom: 15,
+    marginBottom: 16,
+    gap: 6,
   },
   tripTag: {
-    marginRight: 6,
-    marginBottom: 4,
-    backgroundColor: '#E3F2FD',
+    backgroundColor: '#E8F4FD',
+    elevation: 1,
+  },
+  tagText: {
+    fontSize: 11,
+    color: '#1B5E96',
   },
   tripActions: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    gap: 12,
   },
-  detailsButton: {
+  contactButton: {
     flex: 1,
-    marginRight: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: '#1B5E96',
+    elevation: 2,
+    gap: 6,
   },
-  joinButton: {
+  contactButtonText: {
+    color: '#1B5E96',
+    fontWeight: '600',
+  },
+  requestButton: {
     flex: 1,
-    marginLeft: 8,
-    backgroundColor: '#40916C',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    backgroundColor: '#2E7D32',
+    elevation: 4,
+    gap: 6,
+  },
+  requestButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  disabledButton: {
+    backgroundColor: '#BDC3C7',
+    elevation: 1,
+  },
+  disabledButtonText: {
+    color: '#7F8C8D',
+  },
+  fab: {
+    position: 'absolute',
+    margin: 20,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#F39C12',
+    borderRadius: 16,
+    elevation: 8,
   },
 });
